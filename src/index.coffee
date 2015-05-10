@@ -1,6 +1,7 @@
 'use strict'
 
 Block = require 'binbone'
+zlib = require 'zlib'
 
 writeOffset = (int) ->
     if int >= 0 then int + 1 else int
@@ -94,13 +95,14 @@ class GeneralCompressor
         if @_num is 0
             return new Buffer 0
         @_flush()
-        @_data.getData()
+        res = @_data.getData()
+        res
 
 class CompressorOrder2 extends GeneralCompressor
     constructor: (RLE, peek) ->
         super
         @_base1 = @_base2 = @_prev1 = @_prev2 = null
-        @_data.writeByte if RLE then 0x21 else 0x20
+        @_data.writeByte (2 << 4) | ~~@RLE
         @
 
     _writeFirst: (int) ->
@@ -149,7 +151,7 @@ class CompressorOrder1 extends GeneralCompressor
     constructor: (RLE, peek) ->
         super
         @_base = @_prev = null
-        @_data.writeByte if RLE then 0x11 else 0x10
+        @_data.writeByte (1 << 4) | ~~@RLE
         @
 
     _writeFirst: (int) ->
@@ -184,7 +186,7 @@ class CompressorOrder1 extends GeneralCompressor
 
 IC = {}
 
-IC.getCompressor = (RLE = true, order = 2, peek = false) ->
+IC.getCompressor = (RLE = true, order = 1, peek = false) ->
     if order is 1
         new CompressorOrder1 RLE, peek
     else
@@ -215,39 +217,37 @@ IC.compare = (arr = []) ->
 
     build = (name, fun) ->
         t1 = Date.now()
-        len = fun()
+        data = fun()
 
         result.push
             name: name
-            value: len
+            value: data.length
             time: Date.now() - t1
+            deflate: zlib.deflateRawSync(data).length
 
     build "plain", ->
         b = new Block()
         for i in arr
             b.writeInt i
-        b.getData().length
+        b.getData()
 
     build 'order1_RLE', ->
-        res = IC.compress arr,
+        IC.compress arr,
             order: 1
             RLE: yes
-        res.length
     build 'order1', ->
-        res = IC.compress arr,
+        IC.compress arr,
             order: 1
             RLE: no
-        res.length
     build 'order2_RLE', ->
-        res = IC.compress arr,
+        IC.compress arr,
             order: 2
             RLE: yes
-        res.length
     build 'order2', ->
-        res = IC.compress arr,
+        IC.compress arr,
             order: 2
             RLE: no
-        res.length
+
     result
 
 

@@ -9,6 +9,7 @@ report = (arr, msg = "Compare") ->
     res = _.sortBy _.sortBy(res, 'time'), 'value'
 
     base = _.result _.find(res, 'name', 'plain'), 'value'
+    # baseDeflate = _.result _.find(res, 'name', 'plain'), 'deflate'
 
     minVal = _.min(res, 'value').value
     minTime = _.min(res, 'time').time
@@ -19,8 +20,9 @@ report = (arr, msg = "Compare") ->
         minTimeKey.push(name) if time is minTime
         minValKey.push(name) if value is minVal
 
-    res = _.reduce res, (res, {name, value, time}) ->
-        res += name + ': ' + value + " (#{(value / base * 100).toFixed 2}%) #{(time + '').yellow}ms\n    "
+    res = _.reduce res, (res, {name, value, time, deflate}) ->
+        res += "#{name}: #{value} (#{(value / base * 100).toFixed 2}%) #{(time + '').yellow}ms" +
+            " ---- deflate: #{deflate}(#{(deflate / base * 100).toFixed 2}%) \n    "
         res
     , ''
 
