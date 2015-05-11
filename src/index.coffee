@@ -9,15 +9,24 @@ writeOffset = (int) ->
 readOffset = (int) ->
     if int > 0 then int - 1 else int
 
+defaults = (src, dest) ->
+    for k, v of dest
+        (src[k] is undefined) and src[k] = v
+    src
+
 class GeneralCompressor
-    constructor: (@RLE = true, @peek = false) ->
+    constructor: (@opts = {}) ->
+        defaults @opts,
+            RLE: true
+            peek: false
+
         @_num = 0
 
         @_data = new Block()
 
         @arr = []
 
-        unless @RLE
+        unless @opts.RLE
             @_flush = GeneralCompressor::_flush1
             @_writeBuf = GeneralCompressor::_writeBuf1
             @_readBuf = GeneralCompressor::_readBuf1
@@ -31,6 +40,12 @@ class GeneralCompressor
             @_readBuf = GeneralCompressor::_readBuf2
         @
 
+    _writeInt: (int) ->
+        @_data.writeInt int
+
+    _readInt: ->
+        @_data.readInt()
+
     _flush1: -> return
 
     _flush2: ->
@@ -38,30 +53,26 @@ class GeneralCompressor
 
         if @_bufNum > 3
             @_data.writeUInt 0
-            @_data.writeInt writeOffset @_bufItem
+            @_writeInt writeOffset @_bufItem
             @_data.writeLength @_bufNum
         else
             for i in [0...@_bufNum]
-                @_data.writeInt writeOffset @_bufItem
+                @_writeInt writeOffset @_bufItem
 
         @_bufItem = null
         @_bufNum = 0
 
-    _writeBuf1: (int) ->
-        @peek and @arr.push int
-        @_data.writeInt int
-
     _readBuf1: ->
-        @_data.readInt()
+        @_readInt()
 
     _readBuf2: ->
         if @_readBufNum > 0
             @_readBufNum -= 1
             return @_readBufItem
 
-        i1 = @_data.readInt()
+        i1 = @_readInt()
         if i1 is 0
-            item = readOffset @_data.readInt()
+            item = readOffset @_readInt()
             len = @_data.readLength()
             @_readBufItem = item
             @_readBufNum = len - 1
@@ -69,8 +80,12 @@ class GeneralCompressor
         else
             readOffset i1
 
+    _writeBuf1: (int) ->
+        @opts.peek and @arr.push int
+        @_writeInt int
+
     _writeBuf2: (int) ->
-        @peek and @arr.push int
+        @opts.peek and @arr.push int
         if @_bufNum is 0
             @_bufItem = int
             @_bufNum += 1
@@ -99,10 +114,10 @@ class GeneralCompressor
         res
 
 class CompressorOrder2 extends GeneralCompressor
-    constructor: (RLE, peek) ->
+    constructor: (opts) ->
         super
         @_base1 = @_base2 = @_prev1 = @_prev2 = null
-        @_data.writeByte (2 << 4) | ~~@RLE
+        @_data.writeByte (2 << 4) | ~~@opts.RLE
         @
 
     _writeFirst: (int) ->
@@ -147,11 +162,43 @@ class CompressorOrder2 extends GeneralCompressor
             return arr
 
 
+class CompressorOrder0 extends GeneralCompressor
+    constructor: (opts) ->
+        super
+        if @opts.unsigned
+            @__proto__._writeInt = CompressorOrder0::_writeUInt
+            @__proto__._readInt = CompressorOrder0::_readUInt
+
+        @_data.writeByte ~~@opts.RLE | ~~@opts.unsigned << 1
+        @
+
+    _writeUInt: (int) ->
+        @_data.writeUInt int
+
+    _readUInt: ->
+        @_data.readUInt()
+
+    _write: (int) ->
+        @_writeBuf int
+
+    _decompress: ->
+        arr = []
+
+        try
+            while true
+                int = @_readBuf()
+                arr.push int
+        catch e
+            if e.name is 'QueueReadError'
+                return arr
+            else
+                throw e
+
 class CompressorOrder1 extends GeneralCompressor
-    constructor: (RLE, peek) ->
+    constructor: (opts) ->
         super
         @_base = @_prev = null
-        @_data.writeByte (1 << 4) | ~~@RLE
+        @_data.writeByte (1 << 4) | ~~@opts.RLE
         @
 
     _writeFirst: (int) ->
@@ -186,15 +233,19 @@ class CompressorOrder1 extends GeneralCompressor
 
 IC = {}
 
-IC.getCompressor = (RLE = true, order = 1, peek = false) ->
-    if order is 1
-        new CompressorOrder1 RLE, peek
-    else
-        new CompressorOrder2 RLE, peek
+IC.getCompressor = (opts) ->
+    defaults opts,
+        order: 1
+
+    switch opts.order
+        when 0 then new CompressorOrder0 opts
+        when 1 then new CompressorOrder1 opts
+        when 2 then new CompressorOrder2 opts
+        else
+            throw new Error "Order should be 0, 1, 2"
 
 IC.compress = (arr, opts = {}) ->
-    {RLE, order, peek} = opts
-    compressor = IC.getCompressor RLE, order, peek = true
+    compressor = IC.getCompressor opts
     for i in arr
         compressor.write i
     compressor.getResult()
@@ -206,9 +257,10 @@ IC.decompress = (buffer) ->
     opt = block.readByte()
 
     RLE = !! (opt & 1)
-    order = opt >>> 4 or 2
+    order = opt >>> 4
+    unsigned = !! (opt >>> 5)
 
-    compressor = IC.getCompressor RLE, order
+    compressor = IC.getCompressor {RLE, order, unsigned}
     compressor._data = block
     compressor._decompress()
 
@@ -218,18 +270,32 @@ IC.compare = (arr = []) ->
     build = (name, fun) ->
         t1 = Date.now()
         data = fun()
+        t2 = Date.now()
+        zipped = zlib.deflateRawSync(data)
+        t3 = Date.now()
 
         result.push
             name: name
             value: data.length
-            time: Date.now() - t1
-            deflate: zlib.deflateRawSync(data).length
+            time: t2 - t1
+            timeZip: t3 - t2
+            deflate: zipped.length
 
     build "plain", ->
-        b = new Block()
-        for i in arr
-            b.writeInt i
-        b.getData()
+        IC.compress arr,
+            order: 0
+            RLE: no
+
+    build "order0_RLE", ->
+        IC.compress arr,
+            order: 0
+            RLE: yes
+
+    build "order0_RLE_UNSIGNED", ->
+        IC.compress arr,
+            order: 0
+            RLE: yes
+            unsigned: yes
 
     build 'order1_RLE', ->
         IC.compress arr,

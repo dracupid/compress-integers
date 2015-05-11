@@ -20,9 +20,9 @@ report = (arr, msg = "Compare") ->
         minTimeKey.push(name) if time is minTime
         minValKey.push(name) if value is minVal
 
-    res = _.reduce res, (res, {name, value, time, deflate}) ->
+    res = _.reduce res, (res, {name, value, time, timeZip, deflate}) ->
         res += "#{name}: #{value} (#{(value / base * 100).toFixed 2}%) #{(time + '').yellow}ms" +
-            " ---- deflate: #{deflate}(#{(deflate / base * 100).toFixed 2}%) \n    "
+            " ---- deflate: #{deflate}(#{(deflate / base * 100).toFixed 2}%) #{(timeZip + '').yellow}ms\n    "
         res
     , ''
 
@@ -76,6 +76,8 @@ report randomTimeStamp(), "random increacing timestamp"
 report randomIncrease(10), "random increacing integers by 0...10 from 0"
 report randomIncrease(3), "random increacing integers by 0...3 from 0"
 report slowly(-10, 10), "slowly changed integers"
+report randomArray(ARR_SIZE, 0, 255), "Enums in large range"
+report randomArray(ARR_SIZE, 0, 2), "Enums in small range"
 
 kit.fs.readFile kit.path.join(__dirname, './data.txt'), encoding: 'utf-8'
 .then (con) ->
