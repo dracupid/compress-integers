@@ -1,6 +1,6 @@
-'use strict'
-
 Block = require 'binbone'
+
+'use strict'
 
 IC = {}
 
