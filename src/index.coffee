@@ -1,6 +1,6 @@
-Block = require 'binbone'
-
 'use strict'
+
+Block = require 'binbone'
 
 IC = {}
 
@@ -40,7 +40,7 @@ IC.compress = (arr, opts = {}) ->
  * Decompress a buffer to an array of integers
  * @param  {Buffer} buffer  buffer to compress
  * @return {Array}          array of integers
- * @noPrefix
+ * @
 ###
 IC.decompress = (buffer) ->
     if buffer.length is 0

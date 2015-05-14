@@ -14,11 +14,11 @@
     "coffeelint": "1.9.4",
     "dracupid-no": "git+https://github.com/dracupid/dracupid-no.git",
     "mocha": "^2.2.4",
-    "nodoc": "^0.2.3",
+    "nodoc": "^0.2.4",
     "nokit": "0.6.6"
   },
   "dependencies": {
-    "binbone": "^0.1.1"
+    "binbone": "^0.1.2"
   },
   "repository": {
     "type": "git",
