@@ -4,7 +4,8 @@
   "description": "Compress a series of related integers.",
   "main": "dist/index.js",
   "scripts": {
-    "test": "no test"
+    "test": "no test",
+    "compare": "no compare"
   },
   "author": "dracupid <dracupid@gmail.com>",
   "license": "MIT",
@@ -13,11 +14,11 @@
     "coffeelint": "1.9.4",
     "dracupid-no": "git+https://github.com/dracupid/dracupid-no.git",
     "mocha": "^2.2.4",
+    "nodoc": "^0.2.3",
     "nokit": "0.6.6"
   },
   "dependencies": {
-    "binbone": "^0.1.1",
-    "node-dirk": "git+https://github.com/dracupid/node-dirk.git"
+    "binbone": "^0.1.1"
   },
   "repository": {
     "type": "git",

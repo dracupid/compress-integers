@@ -7,15 +7,15 @@ module.exports = (task) ->
     task 'build', "Build Project", (opts) ->
         $.coffee()
 
-    # task 'doc', ->
-    #     {generate: gen} = require 'nodoc'
-    #     data = {}
+    task 'doc', ->
+        {generate: gen} = require 'nodoc'
+        data = {}
 
-    #     kit.Promise.all [gen('./src/Encoder.coffee'), gen('./src/Decoder.coffee'), kit.readFile('./src/Readme.tpl', encoding: 'utf8')]
-    #     .then ([api1, api2, tpl]) ->
-    #         _.template(tpl) {api: api1 + api2}
-    #     .then (md)->
-    #         kit.writeFile 'Readme.md', md
+        kit.Promise.all [gen('./src/index.coffee'), kit.readFile('./src/Readme.tpl', encoding: 'utf8')]
+        .then ([api, tpl]) ->
+            _.template(tpl) {api}
+        .then (md)->
+            kit.writeFile 'Readme.md', md
 
     task 'test', ->
         $.mocha()
@@ -25,4 +25,4 @@ module.exports = (task) ->
         .catch ->
             process.exit 1
 
-    task 'default', ['build']
+    task 'default', ['build', 'doc']

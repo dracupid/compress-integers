@@ -1,7 +1,115 @@
 'use strict'
 
 Block = require 'binbone'
-zlib = require 'zlib'
+
+IC = {}
+
+###*
+ * Get an order N compressor with options
+ * @param  {Object={}} opts    options
+ * @option {boolean}   RLE     use Run-Length Encoding
+ * @option {number=1}  order   order of the compressor (0, 1 or 2)
+ * @return {Compressor}        an order N compressor
+ * @noPrefix
+###
+IC.getCompressor = (opts = {}) ->
+    defaults opts,
+        order: 1
+
+    switch opts.order
+        when 0 then new CompressorOrder0 opts
+        when 1 then new CompressorOrder1 opts
+        when 2 then new CompressorOrder2 opts
+        else
+            throw new Error "Order should be in 0, 1, 2"
+
+###*
+ * A shortcut for get a Compressor
+ * @param  {Array}      arr         array of integers
+ * @param  {options={}} options     see getCompressor
+ * @return {Buffer}     compressed data
+ * @noPrefix
+###
+IC.compress = (arr, opts = {}) ->
+    compressor = IC.getCompressor opts
+    for i in arr
+        compressor.write i
+    compressor.getResult()
+
+###*
+ * Decompress a buffer to an array of integers
+ * @param  {Buffer} buffer  buffer to compress
+ * @return {Array}          array of integers
+ * @noPrefix
+###
+IC.decompress = (buffer) ->
+    if buffer.length is 0
+        return []
+    block = new Block buffer
+    opt = block.readByte()
+
+    RLE = !! (opt & 1)
+    order = opt >>> 4
+    unsigned = !! (opt >>> 5)
+
+    compressor = IC.getCompressor {RLE, order, unsigned}
+    compressor._data = block
+    compressor._decompress()
+
+IC.compare = (arr = []) ->
+    zlib = require 'zlib'
+
+    result = []
+
+    build = (name, fun) ->
+        t1 = Date.now()
+        data = fun()
+        t2 = Date.now()
+        zipped = zlib.deflateRawSync(data)
+        t3 = Date.now()
+
+        result.push
+            name: name
+            value: data.length
+            time: t2 - t1
+            timeZip: t3 - t2
+            deflate: zipped.length
+
+    build "plain", ->
+        IC.compress arr,
+            order: 0
+            RLE: no
+
+    build "order0_RLE", ->
+        IC.compress arr,
+            order: 0
+            RLE: yes
+
+    build "order0_RLE_UNSIGNED", ->
+        IC.compress arr,
+            order: 0
+            RLE: yes
+            unsigned: yes
+
+    build 'order1_RLE', ->
+        IC.compress arr,
+            order: 1
+            RLE: yes
+    build 'order1', ->
+        IC.compress arr,
+            order: 1
+            RLE: no
+    build 'order2_RLE', ->
+        IC.compress arr,
+            order: 2
+            RLE: yes
+    build 'order2', ->
+        IC.compress arr,
+            order: 2
+            RLE: no
+
+    result
+
 
 writeOffset = (int) ->
     if int >= 0 then int + 1 else int
@@ -18,13 +126,10 @@ class GeneralCompressor
     constructor: (@opts = {}) ->
         defaults @opts,
             RLE: true
-            peek: false
 
         @_num = 0
 
         @_data = new Block()
-
-        @arr = []
 
         unless @opts.RLE
             @_flush = GeneralCompressor::_flush1
@@ -81,11 +186,9 @@ class GeneralCompressor
             readOffset i1
 
     _writeBuf1: (int) ->
-        @opts.peek and @arr.push int
         @_writeInt int
 
     _writeBuf2: (int) ->
-        @opts.peek and @arr.push int
         if @_bufNum is 0
             @_bufItem = int
             @_bufNum += 1
@@ -99,6 +202,11 @@ class GeneralCompressor
     _write: (int) ->
         @_writeBuf int
 
+    ###*
+     * write an integer
+     * @param  {number} int integer
+     * @prefix Compressor.
+    ###
     write: (int) ->
         @_num += 1
         int = parseInt int
@@ -108,12 +216,97 @@ class GeneralCompressor
     _decompress: ->
         throw Error "This method should be overwritten by subclasses!"
 
+    ###*
+     * Get the result buffer
+     * @return {Buffer} buffer
+     * @prefix Compressor.
+    ###
     getResult: ->
         if @_num is 0
             return new Buffer 0
         @_flush()
         res = @_data.getData()
         res
+
+
+class CompressorOrder0 extends GeneralCompressor
+    constructor: (opts) ->
+        super
+        if @opts.unsigned
+            @__proto__._writeInt = CompressorOrder0::_writeUInt
+            @__proto__._readInt = CompressorOrder0::_readUInt
+
+        @_data.writeByte ~~@opts.RLE | ~~@opts.unsigned << 1
+        @
+
+    _writeUInt: (int) ->
+        @_data.writeUInt int
+
+    _readUInt: ->
+        parseInt @_data.readUInt()
+
+    _write: (int) ->
+        @_writeBuf int
+
+    _decompress: (limit) ->
+        arr = []
+        num = 0
+
+        try
+            while true
+                return arr if num is limit
+                int = @_readBuf()
+                arr.push int
+                num += 1
+        catch e
+            if e.name is 'QueueReadError'
+                return arr
+            else
+                throw e
+
+
+class CompressorOrder1 extends GeneralCompressor
+    constructor: (opts) ->
+        super
+        @_base = @_prev = null
+        @_data.writeByte (1 << 4) | ~~@opts.RLE
+        @
+
+    _writeFirst: (int) ->
+        @_writeBuf int
+        @_prev = @_base = int
+
+        @_write = CompressorOrder1::_writeOthers
+
+    _writeOthers: (int) ->
+        @_writeBuf int - @_prev
+        @_prev = int
+
+    _write: CompressorOrder1::_writeFirst
+
+    _decompress: (limit) ->
+        if limit is 0
+            return []
+        base = @_readBuf()
+
+        prev = base
+        arr = [prev]
+        num = 1
+
+        try
+            while true
+                return arr if num is limit
+                int = @_readBuf()
+                cur = int + prev
+                arr.push cur
+                prev = cur
+                num += 1
+        catch e
+            if e.name is 'QueueReadError'
+                return arr
+            else
+                throw e
+
 
 class CompressorOrder2 extends GeneralCompressor
     constructor: (opts) ->
@@ -172,168 +365,6 @@ class CompressorOrder2 extends GeneralCompressor
         catch e
             return arr
 
-
-class CompressorOrder0 extends GeneralCompressor
-    constructor: (opts) ->
-        super
-        if @opts.unsigned
-            @__proto__._writeInt = CompressorOrder0::_writeUInt
-            @__proto__._readInt = CompressorOrder0::_readUInt
-
-        @_data.writeByte ~~@opts.RLE | ~~@opts.unsigned << 1
-        @
-
-    _writeUInt: (int) ->
-        @_data.writeUInt int
-
-    _readUInt: ->
-        parseInt @_data.readUInt()
-
-    _write: (int) ->
-        @_writeBuf int
-
-    _decompress: (limit) ->
-        arr = []
-        num = 0
-
-        try
-            while true
-                return arr if num is limit
-                int = @_readBuf()
-                arr.push int
-                num += 1
-        catch e
-            if e.name is 'QueueReadError'
-                return arr
-            else
-                throw e
-
-class CompressorOrder1 extends GeneralCompressor
-    constructor: (opts) ->
-        super
-        @_base = @_prev = null
-        @_data.writeByte (1 << 4) | ~~@opts.RLE
-        @
-
-    _writeFirst: (int) ->
-        @_writeBuf int
-        @_prev = @_base = int
-
-        @_write = CompressorOrder1::_writeOthers
-
-    _writeOthers: (int) ->
-        @_writeBuf int - @_prev
-        @_prev = int
-
-    _write: CompressorOrder1::_writeFirst
-
-    _decompress: (limit) ->
-        if limit is 0
-            return []
-        base = @_readBuf()
-
-        prev = base
-        arr = [prev]
-        num = 1
-
-        try
-            while true
-                return arr if num is limit
-                int = @_readBuf()
-                cur = int + prev
-                arr.push cur
-                prev = cur
-                num += 1
-        catch e
-            if e.name is 'QueueReadError'
-                return arr
-            else
-                throw e
-
-IC = {}
-
-IC.getCompressor = (opts) ->
-    defaults opts,
-        order: 1
-
-    switch opts.order
-        when 0 then new CompressorOrder0 opts
-        when 1 then new CompressorOrder1 opts
-        when 2 then new CompressorOrder2 opts
-        else
-            throw new Error "Order should be 0, 1, 2"
-
-IC.compress = (arr, opts = {}) ->
-    compressor = IC.getCompressor opts
-    for i in arr
-        compressor.write i
-    compressor.getResult()
-
-IC.decompress = (buffer) ->
-    if buffer.length is 0
-        return []
-    block = new Block buffer
-    opt = block.readByte()
-
-    RLE = !! (opt & 1)
-    order = opt >>> 4
-    unsigned = !! (opt >>> 5)
-
-    compressor = IC.getCompressor {RLE, order, unsigned}
-    compressor._data = block
-    compressor._decompress()
-
-IC.compare = (arr = []) ->
-    result = []
-
-    build = (name, fun) ->
-        t1 = Date.now()
-        data = fun()
-        t2 = Date.now()
-        zipped = zlib.deflateRawSync(data)
-        t3 = Date.now()
-
-        result.push
-            name: name
-            value: data.length
-            time: t2 - t1
-            timeZip: t3 - t2
-            deflate: zipped.length
-
-    build "plain", ->
-        IC.compress arr,
-            order: 0
-            RLE: no
-
-    build "order0_RLE", ->
-        IC.compress arr,
-            order: 0
-            RLE: yes
-
-    build "order0_RLE_UNSIGNED", ->
-        IC.compress arr,
-            order: 0
-            RLE: yes
-            unsigned: yes
-
-    build 'order1_RLE', ->
-        IC.compress arr,
-            order: 1
-            RLE: yes
-    build 'order1', ->
-        IC.compress arr,
-            order: 1
-            RLE: no
-    build 'order2_RLE', ->
-        IC.compress arr,
-            order: 2
-            RLE: yes
-    build 'order2', ->
-        IC.compress arr,
-            order: 2
-            RLE: no
-
-    result
 
 
 module.exports = IC
