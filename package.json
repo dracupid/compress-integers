@@ -9,14 +9,14 @@
   "author": "dracupid <dracupid@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "coffee-script": "^1.9.2",
+    "coffee-script": "*",
     "coffeelint": "1.9.4",
     "dracupid-no": "git+https://github.com/dracupid/dracupid-no.git",
     "mocha": "^2.2.4",
-    "nokit": "^0.6.5"
+    "nokit": "0.6.6"
   },
   "dependencies": {
-    "binbone": "^0.1.0",
+    "binbone": "^0.1.1",
     "node-dirk": "git+https://github.com/dracupid/node-dirk.git"
   },
   "repository": {
