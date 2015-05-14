@@ -90,7 +90,7 @@ IC.decompress(buffer);
 
     integer
 
-- #### <a href="./src/index.coffee?source#L224" target="_blank"><b>Compressor.getResult</b></a>
+- #### <a href="./src/index.coffee?source#L224" target="_blank"><b>Compressor.getResult()</b></a>
   Get the result buffer
 
   - **<u>return</u>**: { _Buffer_ }
