@@ -44,7 +44,7 @@ class GeneralCompressor
         @_data.writeInt int
 
     _readInt: ->
-        @_data.readInt()
+        parseInt @_data.readInt()
 
     _flush1: -> return
 
@@ -101,10 +101,12 @@ class GeneralCompressor
 
     write: (int) ->
         @_num += 1
-        @_write ~~int
+        int = parseInt int
+        int = 0 if isNaN int
+        @_write int
 
     _decompress: ->
-        throw Error("This method should be overwritten by subclasses!")
+        throw Error "This method should be overwritten by subclasses!"
 
     getResult: ->
         if @_num is 0
@@ -141,7 +143,10 @@ class CompressorOrder2 extends GeneralCompressor
 
     _write: CompressorOrder2::_writeFirst
 
-    _decompress: ->
+    _decompress: (limit) ->
+        if limit is 0
+            return []
+
         base1 = @_readBuf()
         try
             base2 = @_readBuf()
@@ -151,13 +156,19 @@ class CompressorOrder2 extends GeneralCompressor
         prev1 = base1 + base2
         prev2 = base1
         arr = [prev2, prev1]
+        num = 2
+
+        if limit is 1
+            return [prev2]
 
         try
             while true
+                return arr if num is limit
                 int = @_readBuf()
                 cur = int + 2 * prev1 - prev2
                 [prev2, prev1] = [prev1, cur]
                 arr.push cur
+                num += 1
         catch e
             return arr
 
@@ -176,18 +187,21 @@ class CompressorOrder0 extends GeneralCompressor
         @_data.writeUInt int
 
     _readUInt: ->
-        @_data.readUInt()
+        parseInt @_data.readUInt()
 
     _write: (int) ->
         @_writeBuf int
 
-    _decompress: ->
+    _decompress: (limit) ->
         arr = []
+        num = 0
 
         try
             while true
+                return arr if num is limit
                 int = @_readBuf()
                 arr.push int
+                num += 1
         catch e
             if e.name is 'QueueReadError'
                 return arr
@@ -213,18 +227,23 @@ class CompressorOrder1 extends GeneralCompressor
 
     _write: CompressorOrder1::_writeFirst
 
-    _decompress: ->
+    _decompress: (limit) ->
+        if limit is 0
+            return []
         base = @_readBuf()
 
         prev = base
         arr = [prev]
+        num = 1
 
         try
             while true
+                return arr if num is limit
                 int = @_readBuf()
                 cur = int + prev
                 arr.push cur
                 prev = cur
+                num += 1
         catch e
             if e.name is 'QueueReadError'
                 return arr
