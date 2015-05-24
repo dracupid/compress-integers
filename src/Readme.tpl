@@ -1,21 +1,21 @@
-integers-compressor
+compress-integers
 ======
 Compress a series of related integers.
 
-[![NPM version](https://badge.fury.io/js/integers-compressor.svg)](https://www.npmjs.com/package/integers-compressor)
-[![Deps](https://david-dm.org/dracupid/integers-compressor.svg?style=flat)](https://david-dm.org/dracupid/integers-compressor)
-[![Build Status](https://travis-ci.org/dracupid/integers-compressor.svg)](https://travis-ci.org/dracupid/integers-compressor)
-[![Build status](https://ci.appveyor.com/api/projects/status/github/dracupid/integers-compressor?svg=true)](https://ci.appveyor.com/project/dracupid/integers-compressor)
+[![NPM version](https://badge.fury.io/js/compress-integers.svg)](https://www.npmjs.com/package/compress-integers)
+[![Deps](https://david-dm.org/dracupid/compress-integers.svg?style=flat)](https://david-dm.org/dracupid/compress-integers)
+[![Build Status](https://travis-ci.org/dracupid/compress-integers.svg)](https://travis-ci.org/dracupid/compress-integers)
+[![Build status](https://ci.appveyor.com/api/projects/status/github/dracupid/compress-integers?svg=true)](https://ci.appveyor.com/project/dracupid/compress-integers)
 
 ## Installation
 ```bash
-npm i integers-compressor -S
+npm i compress-integers -S
 ```
 
 ## Usage
 - on-line
 ```javascript
-IC = require('integers-compressor');
+IC = require('compress-integers');
 IC.getCompressor({order: 2});
 IC.write(10);
 IC.write(10);
@@ -38,8 +38,8 @@ IC.decompress(buffer);
 <%= api %>
 
 ## HOW
-- Integers are encoded with zig-zag variable-length coding by [binbone](https://github.com/dracupid/node-binbone/blob/master/doc/spec.md)
-- A series of integers are stored as their difference. Order is the number of turns of making difference.
+- Integers are encoded with zig-zag variable-length coding using [binbone](https://github.com/dracupid/node-binbone/blob/master/doc/spec.md)
+- A series of integers are stored as their differences. Order is the number of turns of making difference.
 - [Run-length encoding](http://en.wikipedia.org/wiki/Run-length_encoding) is use to make it better.
 - This algorithm is not suitable for random integers.
 

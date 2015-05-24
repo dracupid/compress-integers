@@ -22,10 +22,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dracupid/integers-compressor.git"
+    "url": "git+https://github.com/dracupid/compress-integers.git"
   },
   "bugs": {
-    "url": "https://github.com/dracupid/integers-compressor/issues"
+    "url": "https://github.com/dracupid/compress-integers/issues"
   },
-  "homepage": "https://github.com/dracupid/integers-compressor#readme"
+  "homepage": "https://github.com/dracupid/compress-integers#readme"
 }
