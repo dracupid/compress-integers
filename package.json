@@ -20,6 +20,7 @@
   "dependencies": {
     "binbone": "^0.1.2"
   },
+  "files": ["dist"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dracupid/compress-integers.git"
