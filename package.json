@@ -1,6 +1,6 @@
 {
   "name": "compress-integers",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Compress a series of related integers.",
   "main": "dist/index.js",
   "scripts": {
@@ -20,7 +20,9 @@
   "dependencies": {
     "binbone": "^0.1.2"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dracupid/compress-integers.git"
