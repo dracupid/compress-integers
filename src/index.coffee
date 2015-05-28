@@ -365,6 +365,4 @@ class CompressorOrder2 extends GeneralCompressor
         catch e
             return arr
 
-
-
 module.exports = IC
