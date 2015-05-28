@@ -66,12 +66,12 @@ slowly = (from, to) ->
 
 console.log "Array Size: ".blue, ARR_SIZE
 
-report [0 ..ARR_SIZE], 'sequence from 1 to 1000'
+report [0 ..ARR_SIZE], 'sequence from 0 to ARR_SIZE'
 report (1000 for [0...ARR_SIZE]), "repeated sequence for 1000"
 report randomArray(ARR_SIZE, 10, 100), "random array for small number(10, 100)"
 report randomArray(ARR_SIZE, 100000, 100100), "random array for big number(100k, 100.1k)"
-report randomArray(ARR_SIZE, 100000, 101000), "random array for big number(100k, 1001k)"
-report randomArray(ARR_SIZE, 1, 1000000), "pure random array for big number(1, 100k)"
+report randomArray(ARR_SIZE, 100000, 105000), "random array for big number(100k, 105k)"
+report randomArray(ARR_SIZE, 0, 1000000), "pure random array for big number(0, 1000k)"
 report randomTimeStamp(), "random increacing timestamp"
 report randomIncrease(10), "random increacing integers by 0...10 from 0"
 report randomIncrease(3), "random increacing integers by 0...3 from 0"
