@@ -21,7 +21,7 @@ IC.write(10);
 IC.getResult()
 ```
 
-- off-line
+- off-line shortcut
 ```javascript
 buffer = IC.compress([1, 2, 3, 4, 5], {order:1});
 ```

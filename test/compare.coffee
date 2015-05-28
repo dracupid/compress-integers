@@ -9,7 +9,6 @@ report = (arr, msg = "Compare") ->
     res = _.sortBy _.sortBy(res, 'time'), 'value'
 
     base = _.result _.find(res, 'name', 'plain'), 'value'
-    # baseDeflate = _.result _.find(res, 'name', 'plain'), 'deflate'
 
     minVal = _.min(res, 'value').value
     minTime = _.min(res, 'time').time
