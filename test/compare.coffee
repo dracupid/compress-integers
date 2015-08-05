@@ -1,6 +1,6 @@
 IC = require '../src'
 kit = require 'nokit'
-kit.require 'colors'
+require 'colors'
 _ = kit._
 util = require 'util'
 

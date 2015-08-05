@@ -11,14 +11,15 @@
   "license": "MIT",
   "devDependencies": {
     "coffee-script": "*",
-    "coffeelint": "^1.9.7",
+    "coffeelint": "^1.10.1",
+    "colors": "^1.1.2",
     "dracupid-no": "git+https://github.com/dracupid/dracupid-no.git",
     "mocha": "^2.2.5",
-    "nodoc": "^0.2.4",
-    "nokit": "0.7.6"
+    "nodoc": "^0.3.4",
+    "nokit": "0.10.0"
   },
   "dependencies": {
-    "binbone": "^0.1.4"
+    "binbone": "^0.2.0"
   },
   "files": [
     "dist"
