@@ -1,6 +1,6 @@
 {
   "name": "compress-integers",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Compress a series of related integers.",
   "main": "dist/index.js",
   "scripts": {
